@@ -24,7 +24,6 @@ trait SingletonTrait {
    */
   static private $instance;
   
-  
   /**
    * Récupère l'instance unique du singleton
    *

@@ -8,3 +8,12 @@
 - `getReviews` 8.38s
 - `getMetas` 4.16s
 
+## Question 3 : Réduction du nombre de connexions PDO
+
+**Temps de chargement de la page** : TEMPS
+
+**Temps consommé par `getDB()`** 
+
+- **Avant** 1.30s
+
+- **Après** 1.34s

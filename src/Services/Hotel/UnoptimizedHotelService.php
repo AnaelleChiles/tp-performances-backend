@@ -1,7 +1,7 @@
 <?php
 
 namespace App\Services\Hotel;
-
+use App\Common\Database;
 use App\Common\FilterException;
 use App\Common\SingletonTrait;
 use App\Entities\HotelEntity;
@@ -17,8 +17,6 @@ use PDO;
 class UnoptimizedHotelService extends AbstractHotelService
 {
   use SingletonTrait;
-  
-
 
   protected function __construct()
   {
@@ -34,10 +32,12 @@ class UnoptimizedHotelService extends AbstractHotelService
    */
   protected function getDB(): PDO
   {
-    $pdo = new PDO("mysql:host=db;dbname=tp;charset=utf8mb4", "root", "root");
-    return $pdo;
+    $timer = Timers::getInstance();
+    $id = $timer->startTimer('getDB');
+    $pdo = Database::getInstance();
+    $timer->endTimer("getDB", $id);
+    return $pdo->getPDO();
   }
-
 
   /**
    * Récupère une méta-donnée de l'instance donnée
