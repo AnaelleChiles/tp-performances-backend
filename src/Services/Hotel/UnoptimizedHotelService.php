@@ -40,32 +40,6 @@ class UnoptimizedHotelService extends AbstractHotelService
   }
 
   /**
-   * Récupère une méta-donnée de l'instance donnée
-   *
-   * @param int    $userId
-   * @param string $key
-   *
-   * @return string|null
-   */
-
-
-  protected function getMeta(int $userId, string $key): ?string
-  {   
-    $db = $this->getDB();
-    $stmt = $db->prepare("SELECT * FROM wp_usermeta");
-    $stmt->execute();
-
-    $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    $output = null;
-    foreach ($result as $row) {
-      if ($row['user_id'] === $userId && $row['meta_key'] === $key)
-        $output = $row['meta_value'];
-    }
-    return $output;
-  }
-
-
-  /**
    * Récupère toutes les meta données de l'instance donnée
    *
    * @param HotelEntity $hotel
@@ -76,19 +50,32 @@ class UnoptimizedHotelService extends AbstractHotelService
   protected function getMetas(HotelEntity $hotel): array
   {
     $timer = Timers::getInstance();
+    $idhotel = $hotel->getId();
     $id = $timer->startTimer('getMetas');
+
+    $db = $this->getDB();
+    $stmt = $db->prepare("SELECT meta_value, meta_key FROM wp_usermeta WHERE user_id=?");
+    $stmt->execute(array($idhotel));
+
+    $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $value=array();
+
+    foreach ($result as $row) {
+      $value[$row['meta_key']] = $row['meta_value'];
+    }
+    
     $metaDatas = [
       'address' => [
-        'address_1' => $this->getMeta($hotel->getId(), 'address_1'),
-        'address_2' => $this->getMeta($hotel->getId(), 'address_2'),
-        'address_city' => $this->getMeta($hotel->getId(), 'address_city'),
-        'address_zip' => $this->getMeta($hotel->getId(), 'address_zip'),
-        'address_country' => $this->getMeta($hotel->getId(), 'address_country'),
+        'address_1' => $value['address_1'],
+        'address_2' => $value['address_2'],
+        'address_city' => $value['address_city'],
+        'address_zip' =>$value['address_zip'],
+        'address_country' => $value['address_country'],
       ],
-      'geo_lat' => $this->getMeta($hotel->getId(), 'geo_lat'),
-      'geo_lng' => $this->getMeta($hotel->getId(), 'geo_lng'),
-      'coverImage' => $this->getMeta($hotel->getId(), 'coverImage'),
-      'phone' => $this->getMeta($hotel->getId(), 'phone'),
+      'geo_lat' => $value['geo_lat'],
+      'geo_lng' =>$value['geo_lng'],
+      'coverImage' => $value['coverImage'],
+      'phone' => $value['phone'],
     ];
     $timer->endTimer("getMetas", $id);
     return $metaDatas;
@@ -107,19 +94,16 @@ class UnoptimizedHotelService extends AbstractHotelService
     $timer = Timers::getInstance();
     $id = $timer->startTimer('getReviews');
     // Récupère tous les avis d'un hotel
-    $stmt = $this->getDB()->prepare("SELECT * FROM wp_posts, wp_postmeta WHERE wp_posts.post_author = :hotelId AND wp_posts.ID = wp_postmeta.post_id AND meta_key = 'rating' AND post_type = 'review'");
+    $stmt = $this->getDB()->prepare("SELECT COUNT(meta_value) AS Nombre, ROUND(AVG(meta_value),0) AS Tot FROM wp_posts INNER JOIN wp_postmeta ON wp_posts.ID = wp_postmeta.post_id WHERE wp_posts.post_author = :hotelId AND meta_key = 'rating' AND post_type = 'review';");
     $stmt->execute(['hotelId' => $hotel->getId()]);
     $reviews = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    foreach ($reviews as $row) {
+      $output = [
+        'rating' => $row['Tot'],
+        'count' => $row['Nombre'],
+      ];
 
-    // Sur les lignes, ne garde que la note de l'avis
-    $reviews = array_map(function ($review) {
-      return intval($review['meta_value']);
-    }, $reviews);
-
-    $output = [
-      'rating' => round(array_sum($reviews) / count($reviews)),
-      'count' => count($reviews),
-    ];
+    }
     $timer->endTimer("getReviews", $id);
     return $output;
   }
@@ -148,17 +132,58 @@ class UnoptimizedHotelService extends AbstractHotelService
     $timer = Timers::getInstance();
     $id = $timer->startTimer('getCheapestRoom');
     // On charge toutes les chambres de l'hôtel
-    $stmt = $this->getDB()->prepare("SELECT * FROM wp_posts WHERE post_author = :hotelId AND post_type = 'room'");
-    $stmt->execute(['hotelId' => $hotel->getId()]);
+    $stmt = $this->getDB()->prepare("SELECT 
+    Prix.meta_value AS price,
+    Surface.meta_value AS surface,
+    Bedroom.meta_value AS bedroom,
+    Bathroom.meta_value AS bathroom,
+    Types.meta_value AS types,
+    Prix.post_id AS id,
+    post.post_title AS title,
+    Images.meta_value AS images
 
+FROM 
+    wp_posts AS post
+    
+    INNER JOIN wp_postmeta AS Prix 
+        ON Prix.post_id = post.ID AND Prix.meta_key = 'price'   
+
+    INNER JOIN wp_postmeta AS Surface
+        ON Surface.post_id= post.ID AND Surface.meta_key = 'surface'
+       
+    INNER JOIN wp_postmeta AS Bedroom
+        ON Bedroom.post_id= post.ID AND Bedroom.meta_key = 'bedrooms_count'
+        
+    INNER JOIN wp_postmeta AS Bathroom
+        ON Bathroom.post_id= post.ID AND Bathroom.meta_key = 'bathrooms_count'
+        
+    INNER JOIN wp_postmeta AS Types
+        ON Types.post_id= post.ID AND Types.meta_key = 'type'
+        
+    INNER JOIN wp_postmeta AS Images
+        ON Images.post_id= post.ID AND Images.meta_key = 'coverImage'
+        
+       WHERE post_author = :hotelId AND post_type = 'room';");
+    $stmt->execute(['hotelId' => $hotel->getId()]);
+    $resultat = $stmt->fetchAll(PDO::FETCH_ASSOC);
     /**
      * On convertit les lignes en instances de chambres (au passage ça charge toutes les données).
      *
      * @var RoomEntity[] $rooms ;
      */
-    $rooms = array_map(function ($row) {
-      return $this->getRoomService()->get($row['ID']);
-    }, $stmt->fetchAll(PDO::FETCH_ASSOC));
+    $rooms = array();
+    foreach ($resultat as $row) {
+      $chambre = new RoomEntity();
+      $chambre->setBathRoomsCount($row['bathroom']);
+      $chambre->setBedRoomsCount($row['bedroom']);
+      $chambre->setPrice($row['price']);
+      $chambre->setSurface($row['surface']);
+      $chambre->setType($row['types']);
+      $chambre->setCoverImageUrl($row['images']);
+      $chambre->setId($row['id']);
+      $chambre->setTitle($row['title']);
+      $rooms[]=$chambre;
+    }
 
     // On exclut les chambres qui ne correspondent pas aux critères
     $filteredRooms = [];
