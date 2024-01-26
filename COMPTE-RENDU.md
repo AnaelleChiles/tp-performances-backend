@@ -97,14 +97,33 @@ WHERE post_author = :hotelId AND post_type = 'room';
 
 ## Question 6 : Création d'un service basé sur une seule requête SQL
 
-|                              | **Avant** | **Après** |
-|------------------------------|-----------|-----------|
-| Nombre d'appels de `getDB()` | NOMBRE    | NOMBRE    |
-| Temps de chargement global   | TEMPS     | TEMPS     |
+**Ne pas faire**
 
-**Requête SQL**
+## Question 7 : ajout d'indexes SQL
 
-```SQL
--- GIGA REQUÊTE
--- INDENTATION PROPRE ET COMMENTAIRES SERONT APPRÉCIÉS MERCI !
+**Indexes ajoutés**
+
+- `wp_posts` : `post_type, post_author`
+- `wp_usermeta` : `user_id, meta_key `
+- `wp_postmeta` : `post_id, meta_key`
+
+**Requête SQL d'ajout des indexes** 
+
+```sql
+CREATE INDEX Index_posts_post_type ON wp_posts (post_type);
+CREATE INDEX Index_posts_post_author ON wp_posts (post_author);
+
+CREATE INDEX Index_usermeta_user_id ON wp_usermeta (user_id);
+CREATE INDEX Index_usermeta_meta_key ON wp_usermeta (meta_key);
+
+CREATE INDEX Index_postmeta_post_id ON wp_postmeta (post_id);
+CREATE INDEX Index_postmeta_meta_key ON wp_postmeta (meta_key);
 ```
+
+| Temps de chargement de la page | Sans filtre | Avec filtres |
+|--------------------------------|-------------|--------------|
+| `UnoptimizedService`           | 645,97 ms   | 607,79 ms    |
+| `OneRequestService`            | 294,08 ms   | 240,58 ms    |
+[Filtres à utiliser pour mesurer le temps de chargement](http://localhost/?types%5B%5D=Maison&types%5B%5D=Appartement&price%5Bmin%5D=200&price%5Bmax%5D=230&surface%5Bmin%5D=130&surface%5Bmax%5D=150&rooms=5&bathRooms=5&lat=46.988708&lng=3.160778&search=Nevers&distance=30)
+
+
