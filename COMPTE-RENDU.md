@@ -31,13 +31,13 @@
 - **Avant** 4.31s
 
 ```sql
--- SELECT * FROM wp_usermeta;
+ SELECT * FROM wp_usermeta;
 ```
 
 - **Après** 303.60ms
 
 ```sql
--- "SELECT meta_value, meta_key FROM wp_usermeta WHERE user_id=?"
+"SELECT meta_value, meta_key FROM wp_usermeta WHERE user_id=?"
 ```
 
 
@@ -47,13 +47,13 @@
 - **Avant** 8.36s
 
 ```sql
--- SELECT * FROM wp_posts, wp_postmeta WHERE wp_posts.post_author = :hotelId AND wp_posts.ID = wp_postmeta.post_id AND meta_key = 'rating' AND post_type = 'review'
+ SELECT * FROM wp_posts, wp_postmeta WHERE wp_posts.post_author = :hotelId AND wp_posts.ID = wp_postmeta.post_id AND meta_key = 'rating' AND post_type = 'review'
 ```
 
 - **Après** 6.36s
 
 ```sql
--- SELECT COUNT(meta_value) AS Nombre, SUM(meta_value) AS Tot FROM wp_posts INNER JOIN wp_postmeta ON wp_posts.ID = wp_postmeta.post_id WHERE wp_posts.post_author = :hotelId AND meta_key = 'rating' AND post_type = 'review';
+SELECT COUNT(meta_value) AS Nombre, SUM(meta_value) AS Tot FROM wp_posts INNER JOIN wp_postmeta ON wp_posts.ID = wp_postmeta.post_id WHERE wp_posts.post_author = :hotelId AND meta_key = 'rating' AND post_type = 'review';
 ```
 
 
@@ -63,11 +63,48 @@
 - **Avant** 16.50s
 
 ```sql
--- SELECT * FROM wp_posts WHERE post_author = :hotelId AND post_type = 'room';
+ SELECT * FROM wp_posts WHERE post_author = :hotelId AND post_type = 'room';
 ```
 
 - **Après** 11.34s
 
 ```sql
--- SELECT Prix.meta_value AS price, Surface.meta_value AS surface, Bedroom.meta_value AS bedroom, Bathroom.meta_value AS bathroom, Types.meta_value AS types, Prix.post_id AS id, post.post_title AS title, Images.meta_value AS images FROM wp_posts AS post INNER JOIN wp_postmeta AS Prix ON Prix.post_id = post.ID AND Prix.meta_key = 'price' INNER JOIN wp_postmeta AS Surface ON Surface.post_id= post.ID AND Surface.meta_key = 'surface' INNER JOIN wp_postmeta AS Bedroom ON Bedroom.post_id= post.ID AND Bedroom.meta_key = 'bedrooms_count' INNER JOIN wp_postmeta AS Bathroom ON Bathroom.post_id= post.ID AND Bathroom.meta_key = 'bathrooms_count' INNER JOIN wp_postmeta AS Types ON Types.post_id= post.ID AND Types.meta_key = 'type' INNER JOIN wp_postmeta AS Images ON Images.post_id= post.ID AND Images.meta_key = 'coverImage' WHERE post_author = :hotelId AND post_type = 'room';
+SELECT Prix.meta_value AS price, 
+Surface.meta_value AS surface, 
+Bedroom.meta_value AS bedroom, 
+Bathroom.meta_value AS bathroom, 
+Types.meta_value AS types, 
+Prix.post_id AS id, 
+post.post_title AS title, 
+Images.meta_value AS images 
+FROM 
+wp_posts AS post 
+INNER JOIN wp_postmeta AS Prix ON Prix.post_id = post.ID AND Prix.meta_key = 'price' 
+INNER JOIN wp_postmeta AS Surface ON Surface.post_id= post.ID AND Surface.meta_key = 'surface' 
+INNER JOIN wp_postmeta AS Bedroom ON Bedroom.post_id= post.ID AND Bedroom.meta_key = 'bedrooms_count' 
+INNER JOIN wp_postmeta AS Bathroom ON Bathroom.post_id= post.ID AND Bathroom.meta_key = 'bathrooms_count' 
+INNER JOIN wp_postmeta AS Types ON Types.post_id= post.ID AND Types.meta_key = 'type' 
+INNER JOIN wp_postmeta AS Images ON Images.post_id= post.ID AND Images.meta_key = 'coverImage' 
+WHERE post_author = :hotelId AND post_type = 'room';
+```
+
+## Question 5 : Réduction du nombre de requêtes SQL pour `getMeta`
+
+|                              | **Avant** | **Après** |
+|------------------------------|-----------|-----------|
+| Nombre d'appels de `getDB()` |   2 201   |    601    |
+| Temps de `getMetas`          | TEMPS     | 321.90ms  |
+
+## Question 6 : Création d'un service basé sur une seule requête SQL
+
+|                              | **Avant** | **Après** |
+|------------------------------|-----------|-----------|
+| Nombre d'appels de `getDB()` | NOMBRE    | NOMBRE    |
+| Temps de chargement global   | TEMPS     | TEMPS     |
+
+**Requête SQL**
+
+```SQL
+-- GIGA REQUÊTE
+-- INDENTATION PROPRE ET COMMENTAIRES SERONT APPRÉCIÉS MERCI !
 ```
