@@ -127,3 +127,70 @@ CREATE INDEX Index_postmeta_meta_key ON wp_postmeta (meta_key);
 [Filtres à utiliser pour mesurer le temps de chargement](http://localhost/?types%5B%5D=Maison&types%5B%5D=Appartement&price%5Bmin%5D=200&price%5Bmax%5D=230&surface%5Bmin%5D=130&surface%5Bmax%5D=150&rooms=5&bathRooms=5&lat=46.988708&lng=3.160778&search=Nevers&distance=30)
 
 
+## Question 8 : restructuration des tables
+
+**Temps de chargement de la page**
+
+| Temps de chargement de la page | Sans filtre | Avec filtres |
+|--------------------------------|-------------|--------------|
+| `OneRequestService`            | TEMPS       | TEMPS        |
+| `ReworkedHotelService`         | TEMPS       | TEMPS        |
+
+[Filtres à utiliser pour mesurer le temps de chargement](http://localhost/?types%5B%5D=Maison&types%5B%5D=Appartement&price%5Bmin%5D=200&price%5Bmax%5D=230&surface%5Bmin%5D=130&surface%5Bmax%5D=150&rooms=5&bathRooms=5&lat=46.988708&lng=3.160778&search=Nevers&distance=30)
+
+### Table `hotels` (200 lignes)
+
+```SQL
+    CREATE TABLE hotels
+(
+    id INT PRIMARY KEY NOT NULL,
+    name VARCHAR(100),
+    mail VARCHAR(50),
+    adress VARCHAR(150),
+    phone VARCHAR(10),
+    geoLat VARCHAR(150),
+    geoLng VARCHAR(150)
+)
+```
+
+```SQL
+-- REQ SQL INSERTION DONNÉES DANS LA TABLE
+```
+
+### Table `rooms` (1 200 lignes)
+
+```SQL
+    CREATE TABLE rooms
+(
+    id INT PRIMARY KEY NOT NULL,
+    title VARCHAR(100),
+    title VARCHAR(20),
+    coverImageUrl VARCHAR(250),
+    bedRoomsCount INT,
+    bathRoomsCount INT,
+    Surface INT,
+    type VARCHAR(100)
+)
+```
+
+```SQL
+-- REQ SQL INSERTION DONNÉES DANS LA TABLE
+```
+
+### Table `reviews` (19 700 lignes)
+
+```SQL
+    CREATE TABLE reviews
+(
+    id INT PRIMARY KEY NOT NULL,
+    FOREIGN KEY (HotelID) REFERENCES hotels(id),
+    imageUrl VARCHAR(250),
+    ratingCount INT,
+    rating INT
+)
+```
+
+```SQL
+-- REQ SQL INSERTION DONNÉES DANS LA TABLE
+```
+
